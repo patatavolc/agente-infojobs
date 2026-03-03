@@ -12,3 +12,5 @@ dependencies:
       - openai
       - pydantic
       - flask-cors
+      - langchain
+      - langchain-openai

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from openai import OpenAI
+from langchain_openai import ChatOpenAI
 from src.constants import PROVINCIAS_INFOJOBS, normalizar_texto
 import os
 
@@ -14,38 +14,33 @@ class BusquedaInfoJobs(BaseModel):
 
 class AgenteBuscador:
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    
-    def interpretar_frase(self, frase_usuario: str) -> BusquedaInfoJobs:
+        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+
+    def interpretar_frase(self, frase_usuario: str, memoria_usuario) -> BusquedaInfoJobs:
         provincias_validas = ", ".join(PROVINCIAS_INFOJOBS.keys())
-        completion = self.client.beta.chat.completions.parse(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": f"Eres un experto en el mercado laboral español. Extrae los parámetros de búsqueda para InfoJobs. Provincias validas: {provincias_validas}"},
-                {"role": "user", "content": frase_usuario},
-            ],
-            response_format=BusquedaInfoJobs,
-        )
 
-        # Extraer el objeto procesado por la IA
-        datos = completion.choices[0].message.parsed
+        resumen_actual = memoria_usuario.buffer
 
-        # Logica de mapeo: Convertir el nombre de la provincia en su ID
+        llm_con_estructura = self.kkm.with_structured_output(BusquedaInfoJobs)
+
+        prompt = f"""
+        Eres un experto en el mercado laboral español.
+        Contexto de la conversacion previa: {resumen_actual}
+
+        Provincias validas: {provincias_validas}
+
+        Analiza la nueva frase y extrae los parametros actualizados: "{frase_usuario}"
+        """
+
+        # 1. La IA razona basandose en el resumen + la frase nueva
+        datos = llm_con_estructura.invoke(prompt)
+
+        # 2. Guardamos esta interaccion en la memoria para que el resumen se actualice
+        memoria_usuario.save_context({"input": frase_usuario}, {"output": f"Buscando {datos.query} en {datos.provincia} or 'toda España'"})
+
+        # 3. Logica de mapeo de IDs
         if datos.provincia:
             nombre_normalizado = normalizar_texto(datos.provincia)
             datos.provincia_id = PROVINCIAS_INFOJOBS.get(nombre_normalizado)
+      
         return datos
-
-# Bloque de prueba para verificar funcionamiento
-if __name__ == "__main__":
-    from dotenv import load_dotenv
-    load_dotenv()
-    agente = AgenteBuscador()
-    test_frase = "Busco trabajo de Python en Barcelona con teletrabajo"
-    resultado = agente.interpretar_frase(test_frase)
-
-    print("--- Resultados del Agente ---")
-    print(f"Busqueda: {resultado.query}")
-    print(f"Provincia: {resultado.provincia}")
-    print(f"Provincia ID: {resultado.provincia_id}")
-    print(f"Teletrabajo: {resultado.teletrabajo}")
