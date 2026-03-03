@@ -1,0 +1,14 @@
+name: infojobs_agent
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - flask
+      - requests
+      - python-dotenv
+      - openai
+      - pydantic
+      - flask-cors
