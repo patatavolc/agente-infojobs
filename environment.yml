@@ -7,11 +7,13 @@ dependencies:
   - pip
   - pip:
       - flask
+      - flask-cors
       - requests
       - python-dotenv
       - openai
-      - pydantic
-      - flask-cors
-      - langchain
+      - langchain>=0.3
+      - langchain-core
       - langchain-openai
       - langchain-community
+      - pydantic
+      - sniffio
