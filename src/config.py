@@ -131,7 +131,7 @@ def validate_config(verbose: bool = True) -> dict:
         print("=" * 60)
 
         # Base de datos
-        print(f"{'✅' if status['databse'] else '❌'} Base de Datos: {DatabaseConfig.NAME}@{DatabaseConfig.HOST}")
+        print(f"{'✅' if status['database'] else '❌'} Base de Datos: {DatabaseConfig.NAME}@{DatabaseConfig.HOST}")
 
         # InfoJobs
         if status['infojobs']:
