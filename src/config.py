@@ -47,3 +47,41 @@ class DatabaseConfig:
     def get_dsn(cls) -> str:
         """Devuelve el DSN para conexiones URI"""
         return f"postgresql://{cls.USER}:{cls.PASSWORD}@{cls.HOST}:{cls.PORT}/{cls.NAME}"
+    
+# Configuracion e INFOJOBS
+class InfoJobsConfig:
+    """Configuracion para la API de InfoJobs"""
+
+    CLIENT_ID = os.getenv('INFOJOBS_CLIENT_ID', '')
+    CLIENT_SECRET = os.getenv('INFOJOBS_CLIENT_SECRET', '')
+    BASE_URL = os.getenv('INFOJOBS_BASE_URL', 'https://api.infojobs.net/api/9/')
+
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Verifica si las credenciales de InfoJobs estan configuradas"""
+        return bool(cls.CLIENT_ID and cls.CLIENT_SECRET)
+    
+# Configuracion de Jooble
+class JoobleConfig:
+    """Configuracion para la API de Jooble"""
+
+    API_KEY = os.getenv('JOOBLE_API_KEY', '')
+    BASE_URL = os.getenv('JOOBLE_BASE_URL', 'https://jooble.org/api/')
+
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Verifica si la clave de API de Jooble esta configurada"""
+        return bool(cls.API_KEY)
+    
+# Configuracion de Adzuna
+class AdzunaConfig:
+    """Configuracion para la API de Adzuna"""
+
+    APP_ID = os.getenv('ADZUNA_APP_ID', '')
+    APP_KEY = os.getenv('ADZUNA_APP_KEY', '')
+    BASE_URL = os.getenv('ADZUNA_BASE_URL', 'https://api.adzuna.com/v1/api/')
+
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Verifica si las credenciales de Adzuna estan configuradas"""
+        return bool(cls.APP_ID and cls.APP_KEY)
