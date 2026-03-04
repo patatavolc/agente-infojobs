@@ -62,4 +62,62 @@ CREATE INDEX idx_raw_data ON job_offers USING GIN (raw_data);
 
 COMMENT ON INDEX idx_job_offers_title_search IS 'Índice para búsqueda rápida por título de oferta';
 
+-- Funciones y triggers
 
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION update_updated_at_column() IS 'Actualiza automáticamente el campo updated_at antes de cada UPDATE';
+
+CREATE TRIGGER update_job_offers_updated_at
+  BEFORE UPDATE ON job_offers
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_job_portals_updated_at
+  BEFORE UPDATE ON job_portals
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+
+-- Vistas utiles
+-- Vista simplificada de ofertas con nombre del portal
+CREATE OR REPLACE VIEW v_job_offers_with_portal AS
+SELECT
+  jo.id,
+  jo.external_id,
+  jp.name AS portal_name,
+  jo.title,
+  jo.company,
+  jo.city,
+  jo.province,
+  jo.salary,
+  jo.published_at
+FROM job_offers jo
+JOIN job_portals jp ON jo.portal_id = jp.id
+WHERE jp.is_active = TRUE
+ORDER BY jo.scraped_at DESC;
+
+COMMENT ON VIEW v_job_offers_with_portal IS 'Vista que muestra ofertas de empleo junto con el nombre del portal de origen, filtrando solo portales activos';
+
+-- Vista de estadisticas por portal
+CREATE OR REPLACE VIEW v_stats_by_portal AS
+SELECT
+  jp.name AS portal,
+  jp.is_active,
+  COUNT(jo.id) AS total_offers,
+  COUNT(DISTINCT jo.city) AS unique_cities,
+  COUNT(DISTINCT jo.company) AS unique_companies,
+  MAX(jo.scraped_at) AS last_scraped,
+  MIN(jo.scraped_at) AS first_scraped
+FROM job_portals jp
+LEFT JOIN job_offers jo ON jp.id = jo.portal_id
+GROUP BY jp.id, jp.name, jp.is_active
+ORDER BY total_offers DESC;
+
+COMMENT ON VIEW v_stats_by_portal IS 'Vista que muestra estadísticas de ofertas por portal, incluyendo número total de ofertas, ciudades únicas, empresas únicas y fechas de última y primera captura';
