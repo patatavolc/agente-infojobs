@@ -420,4 +420,83 @@ class JobOffersRepository:
 
                 print(f"📊 Estadísticas para portal '{portal_name}': {stats}")
                 return stats
+            
+
     #testing
+
+    # script de prueba para verificar todas las operaciones
+if __name__ == "__main__":
+    repo = JobOffersRepository()
+
+    #probar conexion
+    repo.test_connection()
+
+    # probar guardado de oferta
+    sample_offer = {
+        "id": "test123",
+        "title": "Desarrollador Python",
+        "company": "Tech Company",
+        "city": "Madrid",
+        "province": "Madrid",
+        "salary": "30000-40000 EUR",
+        "description": "Buscamos desarrollador Python con experiencia en Django.",
+        "url": "https://www.infojobs.net/oferta-desarrollador-python",
+        "published_at": "2024-06-01T12:00:00Z"
+    }
+
+    repo.save_offer(sample_offer, portal_name="InfoJobs")
+
+    # probar busqueda de oferta
+    results = repo.search_offers("Python", portal_name="InfoJobs")
+    print(f"Ofertas encontradas: {len(results)}")
+
+    # probar obtencion de oferta por ID
+    if results:
+        offer_id = results[0]['id']
+        offer = repo.get_offer_by_id(offer_id)
+        print(f"Oferta obtenida por ID: {offer['title']}")
+    
+    # probar obtencion de ofertas recientes
+    recent_offers = repo.get_recent_offers(limit=5)
+    print(f"Ofertas recientes: {len(recent_offers)}")
+
+    # probar eliminacion de ofertas por portal
+    deleted_count = repo.delete_offers_by_portal("InfoJobs")
+    print(f"Ofertas eliminadas del portal 'InfoJobs': {deleted_count}")
+
+    # probar obtencion de estadisticas generales
+    stats = repo.get_stats()
+    print(f"Estadísticas generales: {stats}")
+
+    # probar obtencion de estadisticas por portal
+    portal_stats = repo.get_stats_by_portal("InfoJobs")
+    print(f"Estadísticas para 'InfoJobs': {portal_stats}")
+
+    # probar guardado de ofertas en batch
+    batch_offers = [
+        {
+            "id": "batch1",
+            "title": "Desarrollador Frontend",
+            "company": "Tech Company",
+            "city": "Barcelona",
+            "province": "Barcelona",
+            "salary": "25000-35000 EUR",
+            "description": "Buscamos desarrollador Frontend con experiencia en React.",
+            "url": "https://www.infojobs.net/oferta-desarrollador-frontend",
+            "published_at": "2024-06-02T10:00:00Z"
+        },
+        {
+            "id": "batch2",
+            "title": "Analista de Datos",
+            "company": "Data Company",
+            "city": "Valencia",
+            "province": "Valencia",
+            "salary": "28000-38000 EUR",
+            "description": "Buscamos analista de datos con experiencia en Python y SQL.",
+            "url": "https://www.infojobs.net/oferta-analista-datos",
+            "published_at": "2024-06-03T09:00:00Z"
+        }
+    ]
+
+    saved_count = repo.save_offer_batch(batch_offers, portal_name="InfoJobs")
+    print(f"Ofertas guardadas en batch: {saved_count}")
