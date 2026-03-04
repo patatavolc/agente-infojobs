@@ -106,3 +106,52 @@ class AppConfig:
         """Crea los directorios necesarios si no existen"""
         cls.LOGS_DIR.mkdir(exist_ok=True)
         print(f"Directorios verificados: logs/")
+
+
+# Validacion de configuracion
+def validate_config(verbose: bool = True) -> dict:
+    """
+    Valida que todas las configuraciones necesarias esten presentes
+
+    Args: verbose: Si es true, imprime los resultados de validacion
+
+    Returns: Diccionario con el estado de cada configuracion
+    """
+
+    status = {
+        'database': True,
+        'infojobs': InfoJobsConfig.is_configured(),
+        'jooble': JoobleConfig.is_configured(),
+        'adzuna': AdzunaConfig.is_configured()
+    }
+
+    if verbose:
+        print("\n" + "=" * 60)
+        print("Validacion de Configuracion")
+        print("=" * 60)
+
+        # Base de datos
+        print(f"{'✅' if status['databse'] else '❌'} Base de Datos: {DatabaseConfig.NAME}@{DatabaseConfig.HOST}")
+
+        # InfoJobs
+        if status['infojobs']:
+            print(f"✅ InfoJobs: Configurado")
+        else:
+            print(f"❌ InfoJobs: No configurado. Requiere CLIENT_ID y CLIENT_SECRET (usando modo simulado)")
+        
+        # Jooble
+        if status['jooble']:
+            print(f"✅ Jooble: Configurado")
+        else:
+            print(f" Jooble API: No configurada")
+        
+        # Adzuna
+        if status['adzuna']:
+            print(f"✅ Adzuna: Configurado")
+        else:
+            print(f"Adzuna API: No configurada")
+        
+        print("=" * 60 + "\n")    
+    
+    return status
+    
