@@ -46,7 +46,7 @@ COMMENT ON COLUMN job_offers.province IS 'Provincia del puesto';
 COMMENT ON COLUMN job_offers.salary IS 'Salario ofrecido (puede ser rango o "No especificado")';
 COMMENT ON COLUMN job_offers.description IS 'Descripción completa de la oferta';
 COMMENT ON COLUMN job_offers.url IS 'URL directa a la oferta en el portal';
-COMMENT ON COLUMN job_offers.published_date IS 'Fecha de publicación original';
+COMMENT ON COLUMN job_offers.published_at IS 'Fecha de publicación original';
 COMMENT ON COLUMN job_offers.scraped_at IS 'Fecha en que se guardó en nuestra BD';
 COMMENT ON COLUMN job_offers.updated_at IS 'Última actualización del registro';
 COMMENT ON COLUMN job_offers.raw_data IS 'JSON con la respuesta completa del portal (para análisis)';
