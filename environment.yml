@@ -6,16 +6,28 @@ dependencies:
     - python=3.11
     - pip
     - pip:
-          - flask
-          - flask-cors
+          # FastAPI y servidor
+          - fastapi
+          - uvicorn[standard]
+          - python-multipart
+
+          # Utilidades web
           - requests
           - python-dotenv
+
+          # IA y LangChain
           - openai
           - langchain>=0.3
           - langchain-core
           - langchain-openai
           - langchain-community
+
+          # Validación
           - pydantic
           - pydantic-core
-          - sniffio
+
+          # Base de datos
           - psycopg2-binary
+
+          # Utilidades
+          - sniffio
