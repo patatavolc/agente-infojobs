@@ -100,7 +100,7 @@ def buscar():
                         ofertas_guardadas += 1
                 except Exception as e:
                     logger.error(f"Error guardando oferta {oferta_db['id']}: {str(e)}")
-            logger.info(f"{ofertas_guardadas} /{len(resultados['items'])} ofertas guardadas en la DB")
+            logger.info(f"✅ {ofertas_guardadas}/{len(resultados['items'])} ofertas guardadas en la DB")
 
         return jsonify({
             "analisis_ia": parametros.model_dump(),
@@ -116,5 +116,81 @@ def buscar():
             "tipo": type(e).__name__
         }), 500
 
+@app.route("/estadisticas", methods=["GET"])
+def estadisticas():
+    """ Endpoint para obtener estadisticas de la base de datos"""
+    try:
+        stats = db_repo.get_stats()
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"Error obteniendo estadísticas: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Error interno: {str(e)}"}), 500
+
+@app.route("/ofertas/recientes", methods=["GET"])
+def ofertas_recientes():
+    """ Endpoint para obtener ofertas recientes de la BD"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        ofertas = db_repo.get_recent_offers(limit=limit)
+
+        # Convertir a formato JSON serializable
+        ofertas_json = []
+        for oferta in ofertas:
+            oferta_dict = dict(oferta)
+            # Convertir datetime a string
+            if oferta_dict.get('published_at'):
+                oferta_dict['published_at'] = oferta_dict['published_at'].isoformat()
+            if oferta_dict.get('scraped_at'):
+                oferta_dict['scraped_at'] = oferta_dict['scraped_at'].isoformat()
+            if oferta_dict.get('updated_at'):
+                oferta_dict['updated_at'] = oferta_dict['updated_at'].isoformat()
+            ofertas_json.append(oferta_dict)
+
+        return jsonify({
+            "total": len(ofertas_json),
+            "ofertas": ofertas_json
+        })
+    except Exception as e:
+        logger.error(f"Error obteniendo ofertas recientes: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Error interno: {str(e)}"}), 500
+
+@app.route("/ofertas/buscar", methods=["GET"])
+def buscar_en_db():
+    """ Buscar ofertas guardadas en la db por palabra clave"""
+    try:
+        keyword = request.args.get('keyword', '')
+        if not keyword:
+            return jsonify({"error": "Se requiere una palabra clave para buscar"}), 400
+        limit = request.args.get('limit', 10, type=int)
+
+        ofertas = db_repo.search_offers(keyword=keyword, limit=limit)
+
+        ofertas_json = []
+        for oferta in ofertas:
+            oferta_dict = dict(oferta)
+            if oferta_dict.get('published_at'):
+                oferta_dict['published_at'] = oferta_dict['published_at'].isoformat()
+            if oferta_dict.get('scraped_at'):
+                oferta_dict['scraped_at'] = oferta_dict['scraped_at'].isoformat()
+            if oferta_dict.get('updated_at'):
+                oferta_dict['updated_at'] = oferta_dict['updated_at'].isoformat()
+            ofertas_json.append(oferta_dict)
+        
+        return jsonify({
+            "keyword": keyword,
+            "total": len(ofertas_json),
+            "ofertas": ofertas_json
+        })
+    except Exception as e:
+        logger.error(f"Error buscando ofertas en DB: {str(e)}", exc_info=True)
+        return jsonify({"error": f"Error interno: {str(e)}"}), 500
+
+
 if __name__ == "__main__":
+    # Verificar conexion a DB al iniciar
+    logger.info("Verificando conexion a la base de datos...")
+    if db_repo.test_connection():
+        logger.info("✅ Conexion a la base de datos exitosa.")
+    else:
+        logger.error("❌ No se pudo conectar a la base de datos.")
     app.run(debug=True, port=5000)

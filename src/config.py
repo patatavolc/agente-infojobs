@@ -32,6 +32,7 @@ class DatabaseConfig:
     def get_connection_string(cls) -> str:
         """Devuelve la cadena de conexion para psycopg2"""
         return f"host={cls.HOST} port={cls.PORT} dbname={cls.NAME} user={cls.USER} password={cls.PASSWORD}"
+
     @classmethod
     def get_connection_params(cls) -> dict:
         """Devuelve un diccionario con los parametros de conexion para psycopg2"""

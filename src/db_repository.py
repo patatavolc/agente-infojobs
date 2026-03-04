@@ -7,12 +7,12 @@ import psycopg2
 from psycopg2.extras import RealDictCursor, Json
 from typing import List, Dict, Optional
 from datetime import datetime
-from config import DatabaseConfig
+from src.config import DatabaseConfig
 
 class JobOffersRepository:
     def __init__(self):
         self.connection_params = DatabaseConfig.get_connection_params()
-        print(f"Conectando a la base de datos con parametros: {self.connection_params['database']}@{self.connection_params['host']}:{self.connection_params['port']}")
+        print(f"Conectando a la base de datos con parametros: {self.connection_params['dbname']}@{self.connection_params['host']}:{self.connection_params['port']}")
 
     def get_connection(self):
         """ 
@@ -28,12 +28,12 @@ class JobOffersRepository:
         try:
             return psycopg2.connect(**self.connection_params)
         except psycopg2.OperationalError as e:
-                print(f"❌ Error al conectar a la base de datos: {e}")
-                print(f" Host: {self.connection_params['host']}")
-                print(f" Port: {self.connection_params['port']}")
-                print(f" Database: {self.connection_params['dbname']}")
-                print(f" User: {self.connection_params['user']}")
-                raise
+            print(f"❌ Error al conectar a la base de datos: {e}")
+            print(f"   Host: {self.connection_params['host']}")
+            print(f"   Port: {self.connection_params['port']}")
+            print(f"   Database: {self.connection_params['dbname']}")
+            print(f"   User: {self.connection_params['user']}")
+            raise
     
     def test_connection(self) -> bool:
         """"
@@ -192,6 +192,7 @@ class JobOffersRepository:
                     conn.rollback()
                     print(f"❌ Error guardando oferta: {e}")
                     return False
+
     def save_offer_batch(self, offers: List[Dict], portal_name: str) -> int:
         """
         Guarda multiples ofertas.
@@ -221,13 +222,14 @@ class JobOffersRepository:
         return saved_count
 
     # search_offer()
-    def search_offers(self, keyword: str, portal_name: Optional[str] = None) -> List[Dict]:
+    def search_offers(self, keyword: str, portal_name: Optional[str] = None, limit: int = 100) -> List[Dict]:
         """
         Busca ofertas por palabra clave y opcionalmente por portal
         
         Args:
             keyword: Palabra clave a buscar en título, empresa o descripción
             portal_name: Nombre del portal para filtrar (opcional)
+            limit: Número máximo de resultados (default: 100)
 
         Returns:
             Lista de ofertas que coinciden con la búsqueda
@@ -249,15 +251,16 @@ class JobOffersRepository:
                     JOIN job_portals jp ON jo.portal_id = jp.id
                     WHERE (jo.title ILIKE %s OR jo.company ILIKE %s OR jo.description ILIKE %s)
                 """
-                params = (f"%{keyword}%", f"%{keyword}%", f"%{keyword}%")
+                params = [f"%{keyword}%", f"%{keyword}%", f"%{keyword}%"]
                 
                 if portal_id:
                     query += " AND jo.portal_id = %s"
-                    params += (portal_id,)
+                    params.append(portal_id)
                 
-                query += " ORDER BY jo.published_at DESC"
+                query += " ORDER BY jo.published_at DESC LIMIT %s"
+                params.append(limit)
                 
-                cur.execute(query, params)
+                cur.execute(query, tuple(params))
                 results = cur.fetchall()
                 print(f"🔍 Búsqueda completada: {len(results)} ofertas encontradas para '{keyword}'")
                 return results
