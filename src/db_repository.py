@@ -73,3 +73,50 @@ class JobOffersRepository:
       print(f"❌ Error al probar la conexion a la base de datos: {e}")
       return False
 
+
+  def get_portal_id(self, portal_name: str) -> Optional[int]:
+    """
+    Obtiene el ID del portal por nombre
+    
+    Args:
+      portal_name: Nombre del portal (ej: 'InfoJobs)
+      
+    Returns:
+      ID del portal o None si no existe
+    """
+
+    with self.get_connection() as conn:
+      with conn.cursor() as cur:
+        cur.execute("SELECT id FROM job_portals WHERE name = %s", (portal_name,))
+        result = cur.fetchone()
+        return result[0] if result else None
+
+  def get_or_create_portal(self, portal_name:str, base_url: str = None) -> int:
+    """
+    Obtiene o crea un portal y devuelve su ID
+    
+    Args:
+      portal_name: Nombre del portal, sino es proporcionado se usara 'Desconocido'
+      base_url: URL base del portal, opcional
+      
+    Returns:
+      ID del portal en la base de datos
+    """
+    portal_id = self.get_portal_id(portal_name)
+    if portal_id:
+      return portal_id
+    
+    with self.get_connection() as conn:
+      with conn.cursor() as cur:
+        cur.execute(
+          "INSERT INTO job_portals (name, base_url) VALUES (%s, %s) RETURNING id",
+          (portal_name, base_url)
+        )
+        portal_id = cur.fetchone()[0]
+        conn.commit()
+        print(f"✅ Portal '{portal_name}' creado con ID {portal_id}")
+        return portal_id
+  
+  
+
+
