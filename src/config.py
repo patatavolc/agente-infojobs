@@ -154,4 +154,28 @@ def validate_config(verbose: bool = True) -> dict:
         print("=" * 60 + "\n")    
     
     return status
-    
+
+# Inicializacion
+# Crear directorios al importar el modulo
+AppConfig.create_directories()
+
+# Si se ejecuta directamente, mostrar la configuracion
+if __name__ == "__main__":
+    print("=" * 60)
+    print("Configuracion del Proyecto")
+    print("=" * 60)
+    print(f"\n Directorio Base: {AppConfig.BASE_DIR}")
+    print(f" Entorno: {AppConfig.ENVIROMENT}")
+    print(f" Debug: {AppConfig.DEBUG}")
+    print(f" Nivel de Log: {AppConfig.LOG_LEVEL}")
+
+    # Validar configuracion
+    validate_config(verbose=True)
+
+    # Mostrar configuracion de base de datos (sin password)
+    print(f"\n Configuracion de Base de Datos:")
+    print(f"  Host: {DatabaseConfig.HOST}")
+    print(f"  Puerto: {DatabaseConfig.PORT}")
+    print(f"  Nombre: {DatabaseConfig.NAME}")
+    print(f"  Usuario: {DatabaseConfig.USER}")
+    print(f"  Pasword: {'*' * len(DatabaseConfig.PASSWORD) if DatabaseConfig.PASSWORD else '(no configurado)'}")
