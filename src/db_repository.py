@@ -154,7 +154,7 @@ class JobOffersRepository:
                     cur.execute("""
                         INSERT INTO job_offers
                         (portal_id, external_id, title, company, city, province, salary, 
-                         description, url, published_at, raw_data)
+                        description, url, published_at, raw_data)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (portal_id, external_id)
                         DO UPDATE SET
@@ -192,3 +192,32 @@ class JobOffersRepository:
                     conn.rollback()
                     print(f"❌ Error guardando oferta: {e}")
                     return False
+    def save_offer_batch(self, offers: List[Dict], portal_name: str) -> int:
+        """
+        Guarda multiples ofertas.
+        
+        Args:
+            offers: Lista de diccionarios con los datos de las ofertas
+            portal_name: Nombre del portal de origen
+        
+        Returns:
+            Numero de ofertas guardadas exitosamente
+        """
+        portal_id = self.get_portal_id(portal_name)
+        if not portal_id:
+            portal_id = self.get_or_create_portal(portal_name)
+        
+        saved_count = 0
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                for offer in offers:
+                    try:
+                        if self.save_offer(offer, portal_name):
+                            saved_count += 1
+                    except Exception as e:
+                        print(f"❌ Error guardando oferta en batch: {e}")
+                        continue
+        print(f"✅ Batch guardado: {saved_count}/{len(offers)} ofertas guardadas exitosamente")
+        return saved_count
+
+    
