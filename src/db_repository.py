@@ -220,4 +220,82 @@ class JobOffersRepository:
         print(f"✅ Batch guardado: {saved_count}/{len(offers)} ofertas guardadas exitosamente")
         return saved_count
 
-    
+    # search_offer()
+    def search_offers(self, keyword: str, portal_name: Optional[str] = None) -> List[Dict]:
+        """
+        Busca ofertas por palabra clave y opcionalmente por portal
+        
+        Args:
+            keyword: Palabra clave a buscar en título, empresa o descripción
+            portal_name: Nombre del portal para filtrar (opcional)
+
+        Returns:
+            Lista de ofertas que coinciden con la búsqueda
+        """
+
+        if portal_name:
+            portal_id = self.get_portal_id(portal_name)
+            if not portal_id:
+                print(f"⚠️ Portal '{portal_name}' no encontrado. Realizando búsqueda sin filtro de portal.")
+                portal_id = None
+        else:
+            portal_id = None
+        
+        with self.get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                query = """
+                    SELECT jo.*, jp.name AS portal_name
+                    FROM job_offers jo
+                    JOIN job_portals jp ON jo.portal_id = jp.id
+                    WHERE (jo.title ILIKE %s OR jo.company ILIKE %s OR jo.description ILIKE %s)
+                """
+                params = (f"%{keyword}%", f"%{keyword}%", f"%{keyword}%")
+                
+                if portal_id:
+                    query += " AND jo.portal_id = %s"
+                    params += (portal_id,)
+                
+                query += " ORDER BY jo.published_at DESC"
+                
+                cur.execute(query, params)
+                results = cur.fetchall()
+                print(f"🔍 Búsqueda completada: {len(results)} ofertas encontradas para '{keyword}'")
+                return results
+        
+    #get_offer_by_id()
+    def get_offer_by_id(self, offer_id: int) -> Optional[Dict]:
+        """
+        Obtiene una oferta por su ID
+        
+        Args:
+            offer_id: ID de la oferta en la base de datos
+        
+        Returns:
+            Diccionario con los datos de la oferta o None si no se encuentra
+        """
+
+        if not isinstance(offer_id, int):
+            print(f"⚠️ ID de oferta inválido: {offer_id}. Debe ser un entero.")
+            return None
+
+        with self.get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT jo.*, jp.name AS portal_name
+                    FROM job_offers jo
+                    JOIN job_portals jp ON jo.portal_id = jp.id
+                    WHERE jo.id = %s
+                """, (offer_id,))
+                offer = cur.fetchone()
+                if offer:
+                    print(f"✅ Oferta encontrada: ID {offer_id} - {offer['title']}")
+                else:
+                    print(f"⚠️ Oferta con ID {offer_id} no encontrada.")
+            return offer
+        
+
+    #get_recent_offers()
+    #delete_stats_by_portal()
+    #get_stats()
+    #get_stats_by_portal()
+    #testing
