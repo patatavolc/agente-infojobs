@@ -383,5 +383,41 @@ class JobOffersRepository:
 
                 print(f"📊 Estadísticas obtenidas: {stats}")
                 return stats
+            
+
     #get_stats_by_portal()
+    def get_stats_by_portal(self, portal_name: str) -> Dict:
+        """
+            Obtiene estadísticas específicas para un portal de empleo
+
+            Returns:
+                Diccionario con estadísticas como total de ofertas, provincias más comunes, etc.
+        """
+
+        portal_id = self.get_portal_id(portal_name)
+        if not portal_id:
+            print(f"⚠️ Portal '{portal_name}' no encontrado. No se pueden obtener estadísticas.")
+            return {}
+
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                stats = {}
+
+                # Total de ofertas para el portal
+                cur.execute("SELECT COUNT(*) FROM job_offers WHERE portal_id = %s", (portal_id,))
+                stats['total_offers'] = cur.fetchone()[0]
+
+                # Provincias más comunes para el portal
+                cur.execute("""
+                    SELECT province, COUNT(*)
+                    FROM job_offers
+                    WHERE portal_id = %s AND province IS NOT NULL
+                    GROUP BY province
+                    ORDER BY COUNT(*) DESC
+                    LIMIT 5
+                """, (portal_id,))
+                stats['top_provinces'] = {row[0]: row[1] for row in cur.fetchall()}
+
+                print(f"📊 Estadísticas para portal '{portal_name}': {stats}")
+                return stats
     #testing
