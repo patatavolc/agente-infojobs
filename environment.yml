@@ -1,19 +1,21 @@
 name: infojobs_agent
 channels:
-  - conda-forge
-  - defaults
+    - conda-forge
+    - defaults
 dependencies:
-  - python=3.11
-  - pip
-  - pip:
-      - flask
-      - flask-cors
-      - requests
-      - python-dotenv
-      - openai
-      - langchain>=0.3
-      - langchain-core
-      - langchain-openai
-      - langchain-community
-      - pydantic
-      - sniffio
+    - python=3.11
+    - pip
+    - pip:
+          - flask
+          - flask-cors
+          - requests
+          - python-dotenv
+          - openai
+          - langchain>=0.3
+          - langchain-core
+          - langchain-openai
+          - langchain-community
+          - pydantic
+          - pydantic-core
+          - sniffio
+          - psycopg2-binary
