@@ -85,3 +85,24 @@ class AdzunaConfig:
     def is_configured(cls) -> bool:
         """Verifica si las credenciales de Adzuna estan configuradas"""
         return bool(cls.APP_ID and cls.APP_KEY)
+    
+
+# Configuracion general de la aplicacion
+class AppConfig:
+    """Configuracion general de la aplicacion"""
+
+    DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
+    LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
+    ENVIROMENT = os.getenv('ENVIRONMENT', 'development')
+
+    # Directorios del proyecto
+    BASE_DIR = BASE_DIR
+    SRC_DIR = BASE_DIR / 'src'
+    DB_DIR = BASE_DIR / 'db'
+    LOGS_DIR = BASE_DIR / 'logs'
+
+    @classmethod
+    def create_directories(cls):
+        """Crea los directorios necesarios si no existen"""
+        cls.LOGS_DIR.mkdir(exist_ok=True)
+        print(f"Directorios verificados: logs/")
