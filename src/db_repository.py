@@ -295,7 +295,93 @@ class JobOffersRepository:
         
 
     #get_recent_offers()
+    def get_recent_offers(self, limit: int = 10) -> List[Dict]:
+        """
+        Obtiene las ofertas mas recientes
+
+        Args:
+            limit: Numero maximo de ofertas a obtener (default: 10)
+        
+        Returns:
+            Lista de ofertas ordenadas por fecha de publicacion descendente
+        """
+
+        if not isinstance(limit, int) or limit <= 0:
+            print(f"⚠️ Limite inválido: {limit}. Debe ser un entero positivo.")
+            return []
+
+        with self.get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT jo.*, jp.name AS portal_name
+                    FROM job_offers jo
+                    JOIN job_portals jp ON jo.portal_id = jp.id
+                    ORDER BY jo.published_at DESC
+                    LIMIT %s
+                """, (limit,))
+                offers = cur.fetchall()
+                print(f"✅ {len(offers)} ofertas recientes obtenidas.")
+                return offers
+
+
     #delete_stats_by_portal()
+    def delete_offers_by_portal(self, portal_name: str) -> int:
+        """
+        Elimina todas las ofertas asociadas a un portal especifico
+
+        Args:
+            portal_name: Nombre del portal cuyas ofertas se eliminaran
+        
+        Returns:
+            Numero de ofertas eliminadas
+        """
+
+        if not portal_name:
+            print("⚠️ Nombre de portal no proporcionado para eliminación.")
+            return 0
+        
+        portal_id = self.get_portal_id(portal_name)
+        if not portal_id:
+            print(f"⚠️ Portal '{portal_name}' no encontrado. No se eliminarán ofertas.")
+            return 0
+
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM job_offers WHERE portal_id = %s RETURNING id", (portal_id,))
+                deleted_offers = cur.fetchall()
+                conn.commit()
+                deleted_count = len(deleted_offers)
+                print(f"✅ Eliminadas {deleted_count} ofertas del portal '{portal_name}'.")
+                return deleted_count
+            
+
     #get_stats()
+    def get_stats(self) -> Dict:
+        """
+        Obtiene estadísticas generales de las ofertas de empleo
+
+        Returns:
+            Diccionario con estadísticas como total de ofertas, ofertas por portal, etc.
+        """
+
+        with self.get_connection() as conn:
+            with conn.cursor() as cur:
+                stats = {}
+
+                # Total de ofertas
+                cur.execute("SELECT COUNT(*) FROM job_offers")
+                stats['total_offers'] = cur.fetchone()[0]
+
+                # Ofertas por portal
+                cur.execute("""
+                    SELECT jp.name, COUNT(*)
+                    FROM job_offers jo
+                    JOIN job_portals jp ON jo.portal_id = jp.id
+                    GROUP BY jp.name
+                """)
+                stats['offers_by_portal'] = {row[0]: row[1] for row in cur.fetchall()}
+
+                print(f"📊 Estadísticas obtenidas: {stats}")
+                return stats
     #get_stats_by_portal()
     #testing
