@@ -51,3 +51,15 @@ COMMENT ON COLUMN job_offers.scraped_at IS 'Fecha en que se guardó en nuestra B
 COMMENT ON COLUMN job_offers.updated_at IS 'Última actualización del registro';
 COMMENT ON COLUMN job_offers.raw_data IS 'JSON con la respuesta completa del portal (para análisis)';
 
+-- Indices para optmizar búsquedas
+CREATE INDEX idx_job_offers_portal_id ON job_offers(portal_id);
+CREATE INDEX idx_job_offers_city ON job_offers(city);
+CREATE INDEX idx_job_offers_province ON job_offers(province);
+CREATE INDEX idx_job_offers_scrapped ON job_offers(scraped_at DESC);
+CREATE INDEX idx_job_offers_title_search ON job_offers USING GIN (to_tsvector('spanish', title));
+CREATE INDEX idx_job_offers_company ON job_offers(company);
+CREATE INDEX idx_raw_data ON job_offers USING GIN (raw_data);
+
+COMMENT ON INDEX idx_job_offers_title_search IS 'Índice para búsqueda rápida por título de oferta';
+
+
