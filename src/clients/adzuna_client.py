@@ -99,3 +99,69 @@ class AdzunaRealClient(JobPortalClient):
                 "items": [],
                 "error": str(e)
             }
+    
+    def _convertir_a_formato_estandar(self, data: Dict, provincia_id: Optional[str]) -> Dict:
+        """
+        Convierte la respuesta de Adzuna al formato estandar del sistema
+
+        Formato Adzuna:
+        {
+            "count": 123,
+            "results": [
+                {
+                    "id": "1234567",
+                    "title": "Python Developer",
+                    "company": {"display_name": "Tech Corp"},
+                    "location": {"display_name": "Madrid, Community of Madrid"},
+                    "description": "...",
+                    "created": "2024-01-15T10:30:00Z",
+                    "redirect_url": "https://...",
+                    "salary_min": 30000,
+                    "salary_max": 45000,
+                    "contract_type": "permanent",
+                    "category": {"label": "IT Jobs"}
+                }
+            ]
+        }
+        """
+        ofertas_raw = data.get('results', [])
+
+        ofertas_formateadas = []
+        for oferta in ofertas_raw:
+            # Formatear salario
+            salary = self._formatear_salario(
+                oferta.get('salary_min'),
+                oferta.get('salary_max')
+            )
+
+            # Extraer ubicacion
+            location_info = self._extrar_ubicacion(oferta.get('location', {}))
+
+            oferta_formateada = {
+                'id': f"adzuna_{oferta.get('id', 'unknown')}",
+                'title': oferta.get('title', 'Sin titulo'),
+                'company': oferta.get('company', {}).get('display_name', 'No especificado'),
+                'city': location_info['city'],
+                'province': {
+                    'value': provincia_id or location_info['provincia_id']
+                },
+                'salary': salary,
+                'description': oferta.get('description', '')[:500], # Limitar descripcion
+                'url':oferta.get('redirect_url', ''),
+                'published_at': oferta.get('created'),
+                'contract_type': oferta.get('contract_type', 'No especificado'),
+                'category': oferta.get('category', {}).get('label', 'General'),
+                # Datos adicionales específicos de Adzuna
+                'adzuna_data': {
+                    'salary_is_predicted': oferta.get('salary_is_predicted', False),
+                    'contract_time': oferta.get('contract_time'),
+                    'category_tag': oferta.get('category', {}).get('tag')
+                }
+            }
+        ofertas_formateadas.append(oferta_formateada)
+
+        return {
+            'totalResults': data.get('count', 0),
+            'currentResults': len(ofertas_formateadas),
+            'items': ofertas_formateadas
+        }
