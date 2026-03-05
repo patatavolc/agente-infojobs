@@ -18,7 +18,7 @@ dependencies:
           # IA y LangChain
           - openai
           - langchain>=0.3
-          - langchain-core
+          - langchain-core    
           - langchain-openai
           - langchain-community
 
