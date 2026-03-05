@@ -1,14 +1,6 @@
 """
-Modulo de clientes para diferentes portales de emploe
-Soporta tantos modos mock como APIs reales
+Agente Buscador de Empleo - Aplicación principal
+Arquitectura organizada por capas: clients, services, repositories
 """
 
-from .base_client import JobsPortalClient
-from .infojobs_mock import InfoJobsMockClient
-from .infojobs_real import InfoJobsRealClient
-
-__all__ = [
-    "JobsPortalClient",
-    "InfoJobsMockClient",
-    "InfoJobsRealClient"
-]
+__version__ = "2.0.0"

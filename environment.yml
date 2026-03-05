@@ -11,14 +11,17 @@ dependencies:
           - uvicorn[standard]
           - python-multipart
 
+          # Clientes HTTP ASÍNCRONOS
+          - httpx # Reemplaza requests para async
+          - aiohttp # Alternativa async
+
           # Utilidades web
-          - requests
           - python-dotenv
 
           # IA y LangChain
           - openai
           - langchain>=0.3
-          - langchain-core    
+          - langchain-core
           - langchain-openai
           - langchain-community
 
@@ -26,8 +29,9 @@ dependencies:
           - pydantic
           - pydantic-core
 
-          # Base de datos
-          - psycopg2-binary
+          # Base de datos ASÍNCRONA
+          - asyncpg # Reemplaza psycopg2 para async
+          # psycopg2-binary  # Removido - usamos asyncpg
 
           # Utilidades
           - sniffio

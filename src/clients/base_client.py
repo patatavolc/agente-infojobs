@@ -1,5 +1,5 @@
 """
-Clase base abstracta para todos los clientes de portales de empleo
+Clase base abstracta ASÍNCRONA para todos los clientes de portales de empleo
 Define la interfaz comun que deben implementar todos los clientes
 """
 
@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 
 class JobPortalClient(ABC):
     """
-    Interfaz base para clientes de portales de empleo
+    Interfaz base ASÍNCRONA para clientes de portales de empleo
     Todos los clientes (mock o real) deben heredar esta clase
     """
 
@@ -17,14 +17,14 @@ class JobPortalClient(ABC):
         self.is_mock = False
     
     @abstractmethod
-    def buscar_ofertas(
+    async def buscar_ofertas(
         self, 
         query: str, 
         provincia_id: Optional[str] = None, 
         limit: int = 10, 
         **kwargs) -> Dict:
         """
-        Busca ofertas de empleo segun los parametros proporcionados
+        Busca ofertas de empleo de forma ASÍNCRONA
 
         Args:
             query: Termino de busqueda (ej: "Python Developer")
@@ -41,3 +41,7 @@ class JobPortalClient(ABC):
             }
         """
         pass
+    
+    def get_portal_name(self) -> str:
+        """Retorna el nombre del portal"""
+        return self.portal_name

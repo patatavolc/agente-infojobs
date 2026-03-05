@@ -8,9 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, List
 from langchain_openai import ChatOpenAI
-from src.agent_logic import AgenteBuscador
-from src.client_factory import ClientFactory
-from src.db_repository import JobOffersRepository
+from src.services.agent import AgenteBuscador
+from src.clients.factory import ClientFactory
+from src.repositories.database import JobOffersRepository
 from dotenv import load_dotenv
 import logging
 
@@ -120,6 +120,8 @@ def crear_resumen(mensajes: List[Dict]) -> str:
 
 Resumen:"""
     
+    # Nota: invoke es síncrono aquí, pero es rápido
+    # Si queremos hacerlo async, usar: await llm_resumen.ainvoke(prompt)
     response = llm_resumen.invoke(prompt)
     return response.content
 
@@ -164,7 +166,7 @@ async def buscar(request: BuscarRequest):
         resumen = crear_resumen(memoria_actual)
 
         # Interpretar frase con contexto
-        parametros = agente.interpretar_frase_con_contexto(frase_usuario, resumen)
+        parametros = await agente.interpretar_frase_con_contexto(frase_usuario, resumen)
         logger.info(f"Parametros extraidos por el agente: {parametros}")   
         
         # Guardar interacción
@@ -178,8 +180,8 @@ async def buscar(request: BuscarRequest):
         if len(memoria_actual) > 20:
             memoria_actual[:] = memoria_actual[-20:]
         
-        # Búsqueda en InfoJobs
-        resultados = infojobs_client.buscar_ofertas(
+        # Búsqueda en InfoJobs (ASYNC)
+        resultados = await infojobs_client.buscar_ofertas(
             query=parametros.query,
             provincia_id=parametros.provincia_id,
             limit=10
@@ -207,7 +209,7 @@ async def buscar(request: BuscarRequest):
                 }
 
                 try:
-                    if db_repo.save_offer(oferta_db, portal_name="InfoJobs"):
+                    if await db_repo.save_offer(oferta_db, portal_name="InfoJobs"):
                         ofertas_guardadas += 1
                 except Exception as e:
                     logger.error(f"Error guardando oferta {oferta_db['id']}: {str(e)}")
@@ -245,7 +247,7 @@ async def estadisticas():
     - Top 10 provincias con más ofertas
     """
     try:
-        stats = db_repo.get_stats()
+        stats = await db_repo.get_stats()
         return EstadisticasResponse(**stats)
     except Exception as e:
         logger.error(f"Error obteniendo estadísticas: {str(e)}", exc_info=True)
@@ -262,7 +264,7 @@ async def ofertas_recientes(
     - **limit**: Número máximo de ofertas (1-100)
     """
     try:
-        ofertas = db_repo.get_recent_offers(limit=limit)
+        ofertas = await db_repo.get_recent_offers(limit=limit)
 
         ofertas_json = []
         for oferta in ofertas:
@@ -296,7 +298,7 @@ async def buscar_en_db(
     - **limit**: Número máximo de resultados (1-100)
     """
     try:
-        ofertas = db_repo.search_offers(keyword=keyword, limit=limit)
+        ofertas = await db_repo.search_offers(keyword=keyword, limit=limit)
 
         ofertas_json = []
         for oferta in ofertas:
@@ -332,7 +334,7 @@ async def api_status():
     return StatusResponse(
         infojobs_mode="MOCK" if infojobs_client.is_mock else "REAL",
         infojobs_portal=infojobs_client.get_portal_name(),
-        database_connected=db_repo.test_connection(),
+        database_connected=await db_repo.test_connection(),
         available_portals=ClientFactory.get_available_portals()
     )
 
@@ -342,11 +344,15 @@ async def api_status():
 @app.on_event("startup")
 async def startup_event():
     """Se ejecuta al iniciar el servidor"""
-    logger.info("🚀 Iniciando Agente Buscador de Empleo API v2.0")
+    logger.info("🚀 Iniciando Agente Buscador de Empleo API v2.0 (ASYNC)")
+    
+    # Inicializar pool de base de datos
+    logger.info("Inicializando pool de conexiones a la base de datos...")
+    await db_repo.initialize_pool()
     
     # Verificar conexión a DB
     logger.info("Verificando conexión a la base de datos...")
-    if db_repo.test_connection():
+    if await db_repo.test_connection():
         logger.info("✅ Conexión a la base de datos exitosa.")
     else:
         logger.error("❌ No se pudo conectar a la base de datos.")
@@ -361,6 +367,17 @@ async def startup_event():
 async def shutdown_event():
     """Se ejecuta al cerrar el servidor"""
     logger.info("🛑 Cerrando Agente Buscador de Empleo API")
+    
+    # Cerrar clientes HTTP
+    logger.info("🔒 Cerrando clientes HTTP...")
+    await ClientFactory.close_all_clients()
+    
+    # Cerrar pool de base de datos
+    if db_repo.pool:
+        logger.info("🔒 Cerrando pool de base de datos...")
+        await db_repo.pool.close()
+    
+    logger.info("✅ Cierre limpio completado")
 
 
 # ==================== MAIN ====================

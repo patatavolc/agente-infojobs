@@ -18,7 +18,7 @@ class AgenteBuscador:
         
         self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-    def interpretar_frase_con_contexto(self, frase_usuario: str, resumen_contexto: str) -> BusquedaInfoJobs:
+    async def interpretar_frase_con_contexto(self, frase_usuario: str, resumen_contexto: str) -> BusquedaInfoJobs:
         provincias_validas = ", ".join(PROVINCIAS_INFOJOBS.keys())
 
         llm_con_estructura = self.llm.with_structured_output(BusquedaInfoJobs)
@@ -43,7 +43,7 @@ usa el contexto previo para mantener la query anterior."""),
         ])
 
         cadena = prompt | llm_con_estructura
-        resultado = cadena.invoke({"input": frase_usuario})
+        resultado = await cadena.ainvoke({"input": frase_usuario})
 
         # Normalizar provincia
         if resultado.provincia:

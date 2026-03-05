@@ -1,8 +1,9 @@
 """
-Cliente para la API real de Adzuna
+Cliente ASÍNCRONO para la API real de Adzuna
+Documentación: https://developer.adzuna.com/overview
 """
 
-import requests
+import httpx
 from typing import Dict, List, Optional
 from src.clients.base_client import JobPortalClient
 from src.config import AdzunaConfig
@@ -12,11 +13,12 @@ logger = logging.getLogger(__name__)
 
 class AdzunaRealClient(JobPortalClient):
     """
+    Cliente asíncrono para Adzuna API
     Endpoints principales:
     - GET /jobs/{country}/search/{page}
     """
 
-    def __init__(self, portal_name):
+    def __init__(self):
         super().__init__(portal_name="Adzuna")
         self.app_id = AdzunaConfig.APP_ID
         self.app_key = AdzunaConfig.APP_KEY
@@ -25,9 +27,12 @@ class AdzunaRealClient(JobPortalClient):
 
         if not self.app_id or not self.app_key:
             raise ValueError("Adzuna APP_ID y APP_KEY deben estar configurados en el .env")
-        logger.info(f"  ✅ AdzunaRealClient inicializado para {self.country}")
+        
+        # Cliente HTTP asíncrono reutilizable
+        self.client = httpx.AsyncClient(timeout=10.0)
+        logger.info(f"✅ AdzunaRealClient inicializado (async) para {self.country}")
 
-    def buscar_ofertas(
+    async def buscar_ofertas(
         self,
         query: str,
         provincia_id: Optional[str] = None,
@@ -35,7 +40,7 @@ class AdzunaRealClient(JobPortalClient):
         **kwargs
     ) -> Dict:
         """
-        Busca ofertas en Adzuna API
+        Busca ofertas en Adzuna API de forma ASÍNCRONA
 
         Args:
             query: Termino de busqueda (ej: "Python Developer")
@@ -79,19 +84,22 @@ class AdzunaRealClient(JobPortalClient):
             # Construir la URL
             url = f"{self.base_url}jobs/{self.country}/search/1"
 
-            logger.info(f"Buscando en Adzuna: {query} en {location or 'toda España'}")
+            logger.info(f"🔍 Buscando en Adzuna: {query} en {location or 'toda España'}")
 
-            # Realizar la peticion
-            response = requests.get(url, params=params, timeout=10)
+            # Realizar la peticion ASÍNCRONA
+            response = await self.client.get(url, params=params)
             response.raise_for_status()
 
-            data = response.json
+            data = response.json()
 
             # Convertir al formato estandar
             ofertas_formateadas = self._convertir_a_formato_estandar(data, provincia_id)
 
-            logger.info(f"Adzuna: {ofertas_formateadas['totalResults']} ofertas encontradas")
-        except requests.exceptions.RequestException as e:
+            logger.info(f"✅ Adzuna: {ofertas_formateadas['totalResults']} ofertas encontradas")
+            
+            return ofertas_formateadas
+            
+        except httpx.HTTPError as e:
             logger.error(f"❌ Error en Adzuna API: {str(e)}")
             return {
                 "totalResults": 0,
@@ -135,7 +143,7 @@ class AdzunaRealClient(JobPortalClient):
             )
 
             # Extraer ubicacion
-            location_info = self._extrar_ubicacion(oferta.get('location', {}))
+            location_info = self._extraer_ubicacion(oferta.get('location', {}))
 
             oferta_formateada = {
                 'id': f"adzuna_{oferta.get('id', 'unknown')}",
@@ -158,7 +166,7 @@ class AdzunaRealClient(JobPortalClient):
                     'category_tag': oferta.get('category', {}).get('tag')
                 }
             }
-        ofertas_formateadas.append(oferta_formateada)
+            ofertas_formateadas.append(oferta_formateada)
 
         return {
             'totalResults': data.get('count', 0),
@@ -245,9 +253,9 @@ class AdzunaRealClient(JobPortalClient):
 
         return mapping.get(provincia_id)
 
-    def get_categories(self) -> List[Dict]:
+    async def get_categories(self) -> List[Dict]:
         """
-        Obtiene las categorias disponibles en Adzuna
+        Obtiene las categorias disponibles en Adzuna de forma ASÍNCRONA
 
         Returns:
             Lista de categorias con id y nombre
@@ -260,7 +268,7 @@ class AdzunaRealClient(JobPortalClient):
                 'app_key': self.app_key
             }
 
-            response = request.get(url, params=params, timeout=10)
+            response = await self.client.get(url, params=params)
             response.raise_for_status()
 
             data = response.json()
@@ -268,3 +276,8 @@ class AdzunaRealClient(JobPortalClient):
         except Exception as e:
             logger.error(f"Error obteniendo categorias de Adzuna: {str(e)}")
             return []
+    
+    async def close(self):
+        """Cierra el cliente HTTP asíncrono"""
+        await self.client.aclose()
+        logger.info("🔒 Cliente Adzuna cerrado")
