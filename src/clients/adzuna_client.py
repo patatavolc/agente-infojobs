@@ -165,3 +165,53 @@ class AdzunaRealClient(JobPortalClient):
             'currentResults': len(ofertas_formateadas),
             'items': ofertas_formateadas
         }
+
+    def _formatear_salario(self, salary_min: Optional[float], salary_max: Optional[float]) -> str:
+        """Formatea el rango salarial"""
+        if not salary_min and not salary_max:
+            return "No especificado"
+        
+        if salary_min and salary_max:
+            return f"{int(salary_min):,}€ - {int(salary_max):,}€"
+        elif salary_min:
+            return f"Desde {int(salary_min):,}€"
+        else:
+            return f"Hasta {int(salary_max):,}€"
+    
+    def _extraer_ubicacion(self, location: Dict) -> Dict:
+        """
+        Extrae ciudad y provincia del objeto location de Adzuna
+
+        Ejemplo: "Madrid, Community of Madrid" -> Madrid
+        """
+        display_name = location.get('display_name', '')
+
+        # Intentar extraer ciudad (primera parte antes de la coma)
+        parts = display_name.split(',')
+        city = parts[0].strip() if parts else 'España'
+
+        # Mapear a ID de provincia (simplificado)
+        provincia_mapping = {
+            'madrid': '33',
+            'barcelona': '8',
+            'valencia': '46',
+            'sevilla': '41',
+            'zaragoza': '50',
+            'málaga': '29',
+            'murcia': '30',
+            'bilbao': '48',
+            'alicante': '3',
+            'córdoba': '14'
+        }
+
+        provincia_id = None
+        city_lower = city.lower()
+        for key, value in provincia_mapping.items():
+            if key in city_lower:
+                provincia_id = value
+                break
+        
+        return {
+            'city': city,
+            'provincia_id': provincia_id
+        }
