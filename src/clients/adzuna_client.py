@@ -215,3 +215,56 @@ class AdzunaRealClient(JobPortalClient):
             'city': city,
             'provincia_id': provincia_id
         }
+
+    def _provincia_id_to_location(self, provincia_id: Optional[str]) -> Optional[str]:
+        """Convierte ID de provincia de infoJobs a nombre de ciudad para Adzuna"""
+        if not provincia_id:
+            return None
+        
+        # Mapeo inverso de IDs a nombres de ciudades principales
+        mapping = {
+            '33': 'Madrid',
+            '8': 'Barcelona',
+            '46': 'Valencia',
+            '41': 'Sevilla',
+            '50': 'Zaragoza',
+            '29': 'Málaga',
+            '30': 'Murcia',
+            '48': 'Bilbao',
+            '3': 'Alicante',
+            '14': 'Córdoba',
+            '18': 'Granada',
+            '11': 'Cádiz',
+            '43': 'Tarragona',
+            '17': 'Girona',
+            '36': 'Pontevedra',
+            '15': 'A Coruña',
+            '39': 'Santander',
+            '5': 'Oviedo'
+        }
+
+        return mapping.get(provincia_id)
+
+    def get_categories(self) -> List[Dict]:
+        """
+        Obtiene las categorias disponibles en Adzuna
+
+        Returns:
+            Lista de categorias con id y nombre
+        """
+
+        try:
+            url = f"{self.base_url}jobs/{self.country}/categories"
+            params = {
+                'app_id': self.app_id,
+                'app_key': self.app_key
+            }
+
+            response = request.get(url, params=params, timeout=10)
+            response.raise_for_status()
+
+            data = response.json()
+            return data.get('results', [])
+        except Exception as e:
+            logger.error(f"Error obteniendo categorias de Adzuna: {str(e)}")
+            return []
